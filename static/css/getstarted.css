@@ -114,9 +114,6 @@
   cursor: pointer;
   margin-top: 10px;
   transition: background 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .getstartedbody .btn-outline {
   background: transparent;
@@ -151,4 +148,17 @@
 .getstartedbody .btn:hover {
   background: #0ea5e9;
 }
-
+.getstartedbody #phone-login-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.3s;
+}
+.getstartedbody #phone-login-btn:hover {
+  background: #0ea5e9;
+}
