@@ -92,8 +92,8 @@ Remedi/
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/yourusername/HealthEase.git
-   cd HealthEase
+   git clone https://github.com/mrinmoyChakraborty-mrinox/Remedi.git
+   cd Remedi
    ```
 
 2. **Create a virtual environment**
