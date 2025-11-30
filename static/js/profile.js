@@ -43,7 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (file) {
             const tempUrl = URL.createObjectURL(file);
             profileCircle.style.backgroundImage = `url('${tempUrl}')`;
+            
         }
     });
 
+    
 });

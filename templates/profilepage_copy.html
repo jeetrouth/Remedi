@@ -11,7 +11,7 @@
     <!-- 1. HEADER (Profile Pic & Name) -->
     <div class="profile-photo">
         <div class="circle" id="profile-circle"
-             style="background-image: url('{{user}}'); background-size: cover; background-position: center;">
+             style="background-image: url('{{user.photo_url if user.photo_url else 'https://ik.imagekit.io/RemediRX/pngwing.com.png?updatedAt=1764494288724'}}'); background-size: cover; background-position: center;">
         </div>
         
         <!-- Name is always visible at top -->
@@ -48,10 +48,10 @@
     </div>
 
     <!-- 3. EDIT MODE (Form) - Hidden Initially -->
-    <form action="/update_profile" method="POST" id="edit-mode" style="display: none;">
+    <form action="/update_profile" method="POST" enctype="multipart/form-data" id="edit-mode" style="display: none;">
         
         <!-- Hidden File Input -->
-        <input type="file" id="real-file-input" style="display: none;" accept="image/*">
+        <input type="file" name="profile_pic" id="real-file-input" style="display: none;" accept="image/*">
 
         <label>Full Name</label>
         <input type="text" name="username" value="{{ user.username }}">

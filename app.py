@@ -16,26 +16,29 @@ app.secret_key = "supersecretkey"  # change this before deployment
 def home():
     if 'user' in session:
        
-        return render_template("home.html", user=session['user']['username'])
+        return render_template("home.html", user=session['user'])
 
     return render_template("home.html")
 @app.route('/about')
 def about():
-    return render_template("aboutus.html")
+    return render_template("aboutus.html",user=session['user'] if 'user' in session else None)
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session:
         return redirect(url_for('getstarted'))
-    return render_template("dashboard.html", user=session['user']['username'])
+    
+    return render_template("dashboard.html", user=session['user'])
 @app.route('/profile')
 def profile():
     if 'user' not in session:
         return redirect(url_for('getstarted'))
-
+    
     email = session['user']['email']
     user_data = firebase_service.get_user(email)
     
-    # 2. Render HTML with user data
+    # Update session while we are here to keep it fresh
+    if user_data:
+        session['user'] = user_data
     return render_template("profilepage_copy.html", user=user_data)    
     #return render_template("profilepage_copy.html", user=session['user'])    
 @app.route('/update_profile', methods=['POST'])
@@ -43,9 +46,11 @@ def update_profile():
     if 'user' not in session:
         return redirect('/')
 
-    email = session['user']['email']
+    print("--- UPDATE PROFILE STARTED ---") # Debug 1
 
-      # 1. Collect Text Data
+    email = session['user']['email']
+    
+    # 1. Collect Text Data
     updates = {
         "username": request.form.get('username'),
         "age": request.form.get('age'),
@@ -53,28 +58,39 @@ def update_profile():
         "emergency_contact": request.form.get('emergency_contact')
     }
 
-    # 2. Handle Image Upload (If user picked a file)
+    # 2. Check for File
+    print(f"Files in request: {request.files}") # Debug 2
+    
     if 'profile_pic' in request.files:
-        file = request.files['profile_pic']
         
-        # Check if user actually selected a file (filename is not empty)
-        if file and file.filename != '':
-            filename = secure_filename(file.filename)
-            
-            # Upload to ImageKit
-            image_url = upload.upload_image(file, filename)
-            
-            if image_url:
-                updates['photo_url'] = image_url  # Add URL to updates dictionary
+        profile_pic = request.files.get("profile_pic")
 
-    # 3. Update Firestore (Text + Image URL if it exists)
+        if profile_pic and profile_pic.filename:
+            filename = secure_filename(profile_pic.filename)
+
+            # READ THE BYTES HERE SAFEL
+
+            # UPLOAD TO IMAGEKIT
+            try:
+                image_url = upload.upload_document(profile_pic, filename)
+                updates["photo_url"] = image_url
+            except Exception as e:
+                print("ImageKit upload failed:", e)
+                flash("Profile picture could not be uploaded.")
+                return redirect("/profile")
+    
+    # 3. Update Firestore
     firebase_service.update_user(email, updates)
 
-    # 4. Update Session Name
-    session['user'] = updates
+    # 4. Refresh Session
+    updated_user = firebase_service.get_user(email)
+    session['user'] = updated_user
     session.modified = True
-
+    
+    print("--- UPDATE FINISHED ---")
     return redirect('/profile')
+
+
 
 @app.route('/getstarted')
 def getstarted():
@@ -103,10 +119,9 @@ def login():
     user = firebase_service.get_user(email)
     if not user:
         firebase_service.add_user(email=email, username=name)
+        user_data = {"email": email, "username": name, "photo_url": decoded.get("picture", "https://ik.imagekit.io/RemediRX/pngwing.com.png?updatedAt=1764494288724")}
 
-    # Create Flask session
-    session["user"] = {"email": email, "username": name, "uid": uid}
-
+    session["user"] = user_data
     return jsonify({"success": True})
 
 
@@ -130,14 +145,16 @@ def google_login():
     name = decoded.get("name") or email.split("@")[0]
 
     # Check if user exists in Firestore; if not, create
-    user = firebase_service.get_user(email)
-    if not user:
-        firebase_service.add_user(email=email, username=name, password_hash=None)
+    user_data = firebase_service.get_user(email)
+    if not user_data:
+        photo=decoded.get("picture", "https://ik.imagekit.io/RemediRX/pngwing.com.png?updatedAt=1764494288724")
+        firebase_service.add_user(email=email, username=name,photo_url=photo)
+        user_data = {"email": email, "username": name, "photo_url": photo}
 
-    session["user"] = {"email": email, "username": name, "uid": decoded.get("uid")}
-
+    session["user"] = user_data    
 
     return jsonify({"success": True})
+
 @app.route('/api/get_firebase_config', methods=['GET'])
 def get_firebase_config():
     firebase_config = {
@@ -158,13 +175,15 @@ def upload_image():
         return jsonify({"success": False, "error": "No image provided"}), 400
 
     image = request.files['image']
-    image_path = os.path.join("temp_uploads", image.filename)
-    image.save(image_path)
 
-    image_url = upload.upload_document(image_path)
+    # Use the same helper as profile upload:
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(image.filename)
 
-    # Clean up temp file
-    os.remove(image_path)
+    image_url = upload.upload_document(image, filename)  # ✅ pass file object + name
+
+    if not image_url:
+        return jsonify({"success": False, "error": "Upload to ImageKit failed"}), 500
 
     return jsonify({"success": True, "image_url": image_url})
 
