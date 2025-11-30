@@ -37,10 +37,10 @@
 | **Backend** | Flask (Python) |
 | **Database** | Firebase Firestore |
 | **Authentication** | Firebase Auth |
-| **Storage** | Firebase Storage (for prescription uploads) |
+| **Storage** | ImagekitIo (for prescription uploads) |
 | **Scheduler** | APScheduler |
 | **PDF Export** | FPDF / ReportLab |
-| **OCR (optional)** | pytesseract |
+| **OCR (optional)** | Gemini 2.5 flash API |
 
 ---
 
